@@ -7,6 +7,11 @@ The outputs are:
     - cleaned Illumina sequencing reads
 """
 
+import os, sys
+
+configfile: "../../introduction/config.yaml"
+
+
 # function to get fastq file locations from the config file
 def getFastq(wildcards):
     return config['samples'][wildcards.sample]
@@ -58,4 +63,6 @@ rule summarise_trimmomatic_log:
         """
 
 
-
+rule all:
+    input:
+        expand(config["sub_dirs"]["trim_dir"] + "/{sample}_1P.fastq.gz", sample=config["samples"])
