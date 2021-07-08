@@ -33,8 +33,10 @@ rule trimmomatic_PE:
         R2_U = config["sub_dirs"]["trim_dir"] + "/{sample}_2U.fastq.gz"
     params:
         qual = config["trimmomatic_quality"],
-        adapters = config["program_dir"] + config["trimmomatic_adapters"],
-        minlen = config["trimmomatic_minlen"]
+        
+		adapters = config["program_dir"] + config["trimmomatic_adapters"],
+        
+		minlen = config["trimmomatic_minlen"]
     threads: 8
     log:
         "logs/trimmomatic_PE/{sample}.log"
