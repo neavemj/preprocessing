@@ -9,7 +9,7 @@ The outputs are:
 
 import os, sys
 
-configfile: "../../introduction/config.yaml"
+configfile: "../introduction/config.yaml"
 
 
 # function to get fastq file locations from the config file
@@ -32,11 +32,9 @@ rule trimmomatic_PE:
         R2_P = config["sub_dirs"]["trim_dir"] + "/{sample}_2P.fastq.gz",
         R2_U = config["sub_dirs"]["trim_dir"] + "/{sample}_2U.fastq.gz"
     params:
-        qual = config["trimmomatic_quality"],
-        
-		adapters = config["program_dir"] + config["trimmomatic_adapters"],
-        
-		minlen = config["trimmomatic_minlen"]
+        qual = config["trimmomatic_quality"],      
+        adapters = config["program_dir"] + "preprocessing/adapters/" + config["trimmomatic_adapters"],
+        minlen = config["trimmomatic_minlen"]
     threads: 8
     log:
         "logs/trimmomatic_PE/{sample}.log"
