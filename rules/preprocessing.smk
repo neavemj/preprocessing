@@ -9,7 +9,7 @@ The outputs are:
 
 import os, sys
 
-configfile: "../introduction/config.yaml"
+configfile: "config.yaml"
 
 
 # function to get fastq file locations from the config file
@@ -39,7 +39,7 @@ rule trimmomatic_PE:
     log:
         "logs/trimmomatic_PE/{sample}.log"
     benchmark:
-        "benchmarks/" + config["sub_dirs"]["trim_dir"] + "/trimmomatic_PE/{sample}.txt"
+        "benchmarks/trimmomatic_PE/{sample}.txt"
     shell:
         """
         trimmomatic PE \
@@ -58,7 +58,7 @@ rule summarise_trimmomatic_log:
         "logs/trimmomatic_PE/trim_logs.summary"
     shell:
         """
-        {config[program_dir]}/scripts/summarise_trimmomatic.py \
+        {config[program_dir]}/preprocessing/scripts/summarise_trimmomatic.py \
         -i {input} -o {output}
         """
 
