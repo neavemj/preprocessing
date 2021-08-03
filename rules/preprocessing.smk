@@ -27,12 +27,12 @@ rule trimmomatic_PE:
     input:
         reads = getFastq
     output:
-        R1_P = config["sub_dirs"]["trim_dir"] + "/{sample}_1P.fastq.gz",
-        R1_U = config["sub_dirs"]["trim_dir"] + "/{sample}_1U.fastq.gz",
-        R2_P = config["sub_dirs"]["trim_dir"] + "/{sample}_2P.fastq.gz",
-        R2_U = config["sub_dirs"]["trim_dir"] + "/{sample}_2U.fastq.gz"
+        R1_P = "01_preprocessing/{sample}_1P.fastq.gz",
+        R1_U = "01_preprocessing/{sample}_1U.fastq.gz",
+        R2_P = "01_preprocessing/{sample}_2P.fastq.gz",
+        R2_U = "01_preprocessing/{sample}_2U.fastq.gz"
     params:
-        qual = config["trimmomatic_quality"],      
+        qual = config["trimmomatic_quality"],
         adapters = config["program_dir"] + "preprocessing/adapters/" + config["trimmomatic_adapters"],
         minlen = config["trimmomatic_minlen"]
     threads: 8
