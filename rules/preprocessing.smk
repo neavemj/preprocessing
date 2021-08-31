@@ -2,14 +2,20 @@
 These rules will trim sequencing reads
 
 The inputs are:
-    - raw Illumina sequencing reads
+    - raw Illumina or MinION sequencing reads
 The outputs are:
-    - cleaned Illumina sequencing reads
+    - cleaned Illumina or MinION sequencing reads
+    
+The technologies are differentiated by 
+putting the program name in the file name
 """
 
 import os, sys
 
 configfile: "config.yaml"
+
+rule trim_all:
+    input: expand("01_preprocessing/{sample}.porechop.nanofilt.fastq", sample=config["samples"])
 
 
 # function to get fastq file locations from the config file
@@ -50,7 +56,6 @@ rule trimmomatic_PE:
             2> {log}
         """
 
-
 rule summarise_trimmomatic_log:
     input:
         expand("logs/trimmomatic_PE/{sample}.log", sample=config["samples"])
@@ -61,8 +66,51 @@ rule summarise_trimmomatic_log:
         {config[program_dir]}/preprocessing/scripts/summarise_trimmomatic.py \
         -i {input} -o {output}
         """
-
-
-rule all:
+        
+rule porechop:
+    message:
+        """
+        ** preprocessing **
+        Trimming {wildcards.sample} MinION reads for adapters using Porechop
+        """
     input:
-        expand(config["sub_dirs"]["trim_dir"] + "/{sample}_1P.fastq.gz", sample=config["samples"])
+        reads = getFastq
+    output:
+        "01_preprocessing/{sample}.porechop.fastq",
+    params:
+ 
+    threads: 8
+    log:
+    benchmark:
+        "benchmarks/porechop/{sample}.txt"
+    shell:
+        """
+        porechop \
+            -t {threads} \
+            -i {input} \
+            -o {output}
+        """
+        
+rule nanofilt:
+    message:
+        """
+        ** preprocessing **
+        Trimming {wildcards.sample} MinION reads for quality using NanoFilt
+        """
+    input:
+        "01_preprocessing/{sample}.porechop.fastq",
+    output:
+        "01_preprocessing/{sample}.porechop.nanofilt.fastq",
+    params:
+        nanofilt_quality = config["nanofilt_quality"]
+    threads: 1
+    log:
+    benchmark:
+        "benchmarks/nanofilt/{sample}.txt"
+    shell:
+        """
+        NanoFilt \
+            --quality {params.nanofilt_quality} \
+            {input} \
+            > {output}
+        """
