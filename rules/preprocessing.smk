@@ -11,19 +11,53 @@ putting the program name in the file name
 """
 
 import os, sys
+from os.path import join
 
 configfile: "config.yaml"
 
+# 2023-09-26 updated to get sample names from directly from raw file directory
+RAW_DIR = config["raw_dir"]
+
+# need to differentiate between Illumina or MinION data
+# will use the IRMA module config parameter for now
+if config["irma_module"] == "FLU-avian":
+    # if FLU-avain is used is must be Illumina data
+    # assuming the following naming pattern
+    # note: need the comma after SAMPLES, or a list is not created
+    SAMPLES, = glob_wildcards(join(RAW_DIR, "{sample}_L001_R1_001.fastq.gz"))
+    # if we print like below, the draw_dag rule throws an error
+    # somehow this print statement gets put into the dag call..
+    #print("Samples in this job are: ", SAMPLES)
+elif config["irma_module"] == "FLU-minion":
+        # assuming the fastq.gz file produced by the MinION will be cat'd together
+        # won't work if they are uncompressed fastq files
+    SAMPLES, = glob_wildcards(join(RAW_DIR, "{sample}.fastq.gz"))
+    #print("Samples in this job are: ", SAMPLES)
+
+
+# need a function here to differentiate MiSeq from MinION dataset
+def get_reads(wildcards):
+    if config["irma_module"] == "FLU-avian":
+        # if FLU-avain is used is must be Illumina data
+        # assuming the following naming pattern
+        return([
+            join(RAW_DIR, "{sample}_L001_R1_001.fastq.gz"),
+            join(RAW_DIR, "{sample}_L001_R2_001.fastq.gz")
+            ])
+    elif config["irma_module"] == "FLU-minion":
+        # assuming the fastq.gz file produced by the MinION will be cat'd together
+        # won't work if they are uncompressed fastq files
+        return([      
+            join(RAW_DIR, "{sample}.fastq.gz")
+            ])  
+
+
 rule trim_all:
-    input: expand("01_preprocessing/{sample}.porechop.nanofilt.fastq", sample=config["samples"])
+    input: 
+        expand("01_preprocessing/{sample}_1P.fastq.gz", sample=SAMPLES)
+        #expand("01_preprocessing/{sample}.porechop.nanofilt.fastq", sample=SAMPLES)
 
 
-# function to get fastq file locations from the config file
-def getFastq(wildcards):
-    return config['samples'][wildcards.sample]
-
-
-# TODO: might need a trimmomatic SE mode
 rule trimmomatic_PE:
     message:
         """
@@ -31,7 +65,7 @@ rule trimmomatic_PE:
         Trimming {wildcards.sample} for quality and Illumina adapters using Trimmomatic
         """
     input:
-        reads = getFastq
+        get_reads
     output:
         R1_P = "01_preprocessing/{sample}_1P.fastq.gz",
         R1_U = "01_preprocessing/{sample}_1U.fastq.gz",
@@ -50,7 +84,7 @@ rule trimmomatic_PE:
         """
         trimmomatic PE \
             -threads {threads} \
-            {input.reads} {output.R1_P} {output.R1_U} {output.R2_P} {output.R2_U} \
+            {input} {output.R1_P} {output.R1_U} {output.R2_P} {output.R2_U} \
             ILLUMINACLIP:{params.adapters}:2:30:10 \
             LEADING:3 TRAILING:3 SLIDINGWINDOW:4:{params.qual} MINLEN:{params.minlen} \
             2> {log}
@@ -58,7 +92,7 @@ rule trimmomatic_PE:
 
 rule summarise_trimmomatic_log:
     input:
-        expand("logs/trimmomatic_PE/{sample}.log", sample=config["samples"])
+        "logs/trimmomatic_PE/{sample}.log"
     output:
         "logs/trimmomatic_PE/trim_logs.summary"
     shell:
@@ -74,7 +108,7 @@ rule porechop:
         Trimming {wildcards.sample} MinION reads for adapters using Porechop
         """
     input:
-        reads = getFastq
+        get_reads
     output:
         "01_preprocessing/{sample}.porechop.fastq",
     params:
